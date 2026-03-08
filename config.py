@@ -14,7 +14,7 @@ TIMEWEB_API_URL = "https://api.timeweb.cloud/api/v1"
 # PolzaAI
 POLZAAI_API_KEY = os.getenv("POLZAAI_API_KEY")
 POLZAAI_USER_ID = os.getenv("POLZAAI_USER_ID")
-POLZAAI_API_URL = "https://api.polza.ai/v1"  # уточните актуальный URL
+POLZAAI_API_URL = os.getenv("POLZAAI_API_URL", "https://polza.ai/api/v1")
 
 # Yandex Webmaster
 YANDEX_OAUTH_TOKEN = os.getenv("YANDEX_OAUTH_TOKEN")
