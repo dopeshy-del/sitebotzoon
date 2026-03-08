@@ -71,13 +71,15 @@ async def send_daily_report(bot: Bot):
     """Отправить ежедневный сводный отчёт."""
     try:
         import asyncio
-        tw_bal, polzaai_bal, indexing, queries = await asyncio.gather(
+        tw_bal, tw_products, polzaai_bal, polza_usage, indexing, queries = await asyncio.gather(
             tw.get_account_balance(),
+            tw.get_products_summary(),
             polza.get_balance(),
+            polza.get_usage_stats(),
             yx.get_indexing_stats(),
             yx.get_search_queries(),
         )
-        text = fmt.fmt_full_report(tw_bal, polzaai_bal, indexing, queries)
+        text = fmt.fmt_full_report(tw_bal, tw_products, polzaai_bal, polza_usage, indexing, queries)
         await bot.send_message(ADMIN_CHAT_ID, text, parse_mode="HTML")
     except Exception as e:
         logger.error(f"Daily report error: {e}")
