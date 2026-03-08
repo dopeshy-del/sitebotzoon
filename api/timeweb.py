@@ -92,13 +92,22 @@ async def get_server_stats(server_id: int) -> dict:
 
 async def reboot_server(server_id: int) -> bool:
     """Перезагрузить сервер."""
-    async with aiohttp.ClientSession() as session:
-        async with session.post(
-            f"{TIMEWEB_API_URL}/servers/{server_id}/action",
-            headers=HEADERS,
-            json={"action": "reboot"}
-        ) as r:
-            return r.status == 200
+    return await _run_server_action(server_id, "reboot")
+
+
+async def soft_reboot_server(server_id: int) -> bool:
+    """Выполнить мягкую перезагрузку сервера."""
+    return await _run_server_action(server_id, "soft_reboot", fallback_actions=("reboot_soft", "reboot"))
+
+
+async def start_server(server_id: int) -> bool:
+    """Включить сервер."""
+    return await _run_server_action(server_id, "start", fallback_actions=("power_on", "resume"))
+
+
+async def stop_server(server_id: int) -> bool:
+    """Выключить сервер."""
+    return await _run_server_action(server_id, "shutdown", fallback_actions=("stop", "power_off"))
 
 
 async def get_domains() -> list:
@@ -175,3 +184,23 @@ def _parse_product_payload(payload: dict) -> tuple[int, float]:
                 monthly_cost += float(val)
                 break
     return len(items), monthly_cost
+
+
+async def _run_server_action(server_id: int, action: str, fallback_actions: tuple[str, ...] = ()) -> bool:
+    actions = (action, *fallback_actions)
+    async with aiohttp.ClientSession() as session:
+        for action_name in actions:
+            try:
+                async with session.post(
+                    f"{TIMEWEB_API_URL}/servers/{server_id}/action",
+                    headers=HEADERS,
+                    json={"action": action_name}
+                ) as r:
+                    if r.status in (200, 202, 204):
+                        return True
+                    # Если экшен не поддерживается, пробуем fallback.
+                    if r.status in (400, 404, 422):
+                        continue
+            except aiohttp.ClientError:
+                continue
+    return False

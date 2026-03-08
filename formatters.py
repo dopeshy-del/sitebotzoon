@@ -105,6 +105,11 @@ def fmt_polzaai_usage(data: dict) -> str:
         f"Токены: <b>{totals.get('tokens', 0)}</b> | "
         f"Расход: <b>{totals.get('cost', 0)} ₽</b>"
     )
+
+    endpoint = data.get("source_endpoint")
+    if endpoint:
+        lines.append(f"Источник метрик: <code>{endpoint}</code>")
+
     return "\n".join(lines)
 
 

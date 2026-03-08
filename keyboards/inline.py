@@ -63,7 +63,14 @@ def servers_menu(servers: list) -> InlineKeyboardMarkup:
 def server_actions_menu(server_id: int) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text="🔄 Перезагрузить", callback_data=f"reboot_{server_id}"),
+            InlineKeyboardButton(text="♻️ Мягкая перезагрузка", callback_data=f"soft_reboot_{server_id}"),
+        ],
+        [
+            InlineKeyboardButton(text="🔄 Жёсткая перезагрузка", callback_data=f"reboot_{server_id}"),
+        ],
+        [
+            InlineKeyboardButton(text="🟢 Включить", callback_data=f"start_{server_id}"),
+            InlineKeyboardButton(text="🔴 Выключить", callback_data=f"stop_{server_id}"),
         ],
         [
             InlineKeyboardButton(text="◀️ К серверам", callback_data="tw_servers"),

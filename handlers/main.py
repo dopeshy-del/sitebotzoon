@@ -130,6 +130,33 @@ async def cb_reboot(cb: CallbackQuery):
     await cb.message.edit_text(text, reply_markup=kb.timeweb_menu(), parse_mode="HTML")
 
 
+@router.callback_query(F.data.startswith("soft_reboot_"))
+async def cb_soft_reboot(cb: CallbackQuery):
+    server_id = int(cb.data.split("_")[-1])
+    await cb.answer("⏳ Мягко перезагружаю...")
+    success = await tw.soft_reboot_server(server_id)
+    text = "✅ Команда мягкой перезагрузки отправлена" if success else "❌ Ошибка мягкой перезагрузки"
+    await cb.message.edit_text(text, reply_markup=kb.timeweb_menu(), parse_mode="HTML")
+
+
+@router.callback_query(F.data.startswith("start_"))
+async def cb_start_server(cb: CallbackQuery):
+    server_id = int(cb.data.split("_")[1])
+    await cb.answer("⏳ Включаю сервер...")
+    success = await tw.start_server(server_id)
+    text = "✅ Команда на включение отправлена" if success else "❌ Ошибка включения сервера"
+    await cb.message.edit_text(text, reply_markup=kb.timeweb_menu(), parse_mode="HTML")
+
+
+@router.callback_query(F.data.startswith("stop_"))
+async def cb_stop_server(cb: CallbackQuery):
+    server_id = int(cb.data.split("_")[1])
+    await cb.answer("⏳ Выключаю сервер...")
+    success = await tw.stop_server(server_id)
+    text = "✅ Команда на выключение отправлена" if success else "❌ Ошибка выключения сервера"
+    await cb.message.edit_text(text, reply_markup=kb.timeweb_menu(), parse_mode="HTML")
+
+
 @router.callback_query(F.data == "tw_domains")
 async def cb_tw_domains(cb: CallbackQuery):
     await cb.answer("⏳ Запрашиваю...")
