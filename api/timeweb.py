@@ -127,7 +127,106 @@ async def get_domains() -> list:
 
 
 async def get_products_summary() -> dict:
-    """Получить список основных продуктов аккаунта Timeweb и расходы по ним (если есть в API)."""
+    """Получить сводку по стоимости активных сервисов Timeweb."""
+    async with aiohttp.ClientSession() as session:
+        # Актуальный API Timeweb: /account/services/cost
+        services_costs = await _fetch_services_costs(session)
+        if services_costs:
+            return _summarize_services_costs(services_costs)
+
+        # Fallback на старую логику, если endpoint недоступен.
+        return await _get_products_summary_fallback(session)
+
+
+async def _fetch_services_costs(session: aiohttp.ClientSession) -> list[dict]:
+    try:
+        async with session.get(f"{TIMEWEB_API_URL}/account/services/cost", headers=HEADERS) as r:
+            if r.status != 200:
+                return []
+            payload = await r.json()
+            services_costs = payload.get("services_costs", [])
+            if isinstance(services_costs, list):
+                return [item for item in services_costs if isinstance(item, dict)]
+    except aiohttp.ClientError:
+        return []
+    return []
+
+
+def _summarize_services_costs(services_costs: list[dict]) -> dict:
+    products_by_name: dict[str, dict] = {}
+
+    for item in services_costs:
+        service_name = _extract_service_name(item)
+        cost = _extract_service_cost(item)
+
+        if service_name not in products_by_name:
+            products_by_name[service_name] = {
+                "name": service_name,
+                "count": 0,
+                "monthly_cost": 0.0,
+            }
+
+        products_by_name[service_name]["count"] += 1
+        products_by_name[service_name]["monthly_cost"] += cost
+
+    products = sorted(
+        (
+            {
+                "name": product["name"],
+                "count": product["count"],
+                "monthly_cost": round(product["monthly_cost"], 2),
+            }
+            for product in products_by_name.values()
+        ),
+        key=lambda product: product["monthly_cost"],
+        reverse=True,
+    )
+
+    total_monthly = sum(product["monthly_cost"] for product in products)
+    return {
+        "products": products,
+        "total_monthly_cost": round(total_monthly, 2),
+        "estimated_daily_cost": round(total_monthly / 30, 2) if total_monthly else 0.0,
+    }
+
+
+def _extract_service_name(item: dict) -> str:
+    for key in (
+        "service_name",
+        "name",
+        "service",
+        "title",
+        "type",
+    ):
+        value = item.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return "Прочие сервисы"
+
+
+def _extract_service_cost(item: dict) -> float:
+    for key in (
+        "monthly_cost",
+        "cost_per_month",
+        "month_price",
+        "price_per_month",
+        "cost",
+        "price",
+    ):
+        value = item.get(key)
+        if isinstance(value, (int, float)):
+            return float(value)
+
+    for value in item.values():
+        if isinstance(value, dict):
+            nested = _extract_service_cost(value)
+            if nested > 0:
+                return nested
+
+    return 0.0
+
+
+async def _get_products_summary_fallback(session: aiohttp.ClientSession) -> dict:
     endpoints = {
         "VPS": "/servers",
         "Домены": "/domains",
@@ -139,26 +238,25 @@ async def get_products_summary() -> dict:
 
     products = []
     total_monthly = 0.0
-    async with aiohttp.ClientSession() as session:
-        for title, endpoint in endpoints.items():
-            try:
-                async with session.get(f"{TIMEWEB_API_URL}{endpoint}", headers=HEADERS) as r:
-                    if r.status != 200:
-                        continue
-                    payload = await r.json()
-                    count, monthly_cost = _parse_product_payload(payload)
-                    if count == 0 and monthly_cost == 0:
-                        continue
-                    total_monthly += monthly_cost
-                    products.append(
-                        {
-                            "name": title,
-                            "count": count,
-                            "monthly_cost": round(monthly_cost, 2),
-                        }
-                    )
-            except aiohttp.ClientError:
-                continue
+    for title, endpoint in endpoints.items():
+        try:
+            async with session.get(f"{TIMEWEB_API_URL}{endpoint}", headers=HEADERS) as r:
+                if r.status != 200:
+                    continue
+                payload = await r.json()
+                count, monthly_cost = _parse_product_payload(payload)
+                if count == 0 and monthly_cost == 0:
+                    continue
+                total_monthly += monthly_cost
+                products.append(
+                    {
+                        "name": title,
+                        "count": count,
+                        "monthly_cost": round(monthly_cost, 2),
+                    }
+                )
+        except aiohttp.ClientError:
+            continue
 
     return {
         "products": products,
