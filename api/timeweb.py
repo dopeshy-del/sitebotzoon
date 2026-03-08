@@ -155,16 +155,12 @@ async def _fetch_services_costs(session: aiohttp.ClientSession) -> list[dict]:
 def _extract_cost_items(payload: dict) -> list[dict]:
     """Извлечь нормализованный список сервисов с ценой из любого payload Timeweb."""
     collected: list[dict] = []
-    seen_signatures: set[tuple[str, float]] = set()
 
     def walk(value):
         if isinstance(value, dict):
             normalized = _normalize_cost_item(value)
             if normalized:
-                signature = (normalized["name"], normalized["monthly_cost"])
-                if signature not in seen_signatures:
-                    seen_signatures.add(signature)
-                    collected.append(normalized)
+                collected.append(normalized)
 
             for nested_value in value.values():
                 walk(nested_value)
@@ -181,6 +177,12 @@ def _extract_cost_items(payload: dict) -> list[dict]:
 def _normalize_cost_item(item: dict) -> dict | None:
     cost = _extract_service_cost(item)
     if cost <= 0:
+        return None
+
+    # У родительских сущностей (например, проектов) может быть своя сумма
+    # и детализация дочерними сервисами. В отчёт берём только leaf-элементы,
+    # иначе сумма задвоится.
+    if _has_nested_cost_items(item):
         return None
 
     # Отсекаем агрегаты вида total_monthly_cost, чтобы не задвоить суммы.
@@ -258,6 +260,7 @@ def _extract_service_cost(item: dict) -> float:
         "price_per_month",
         "monthly_payment",
         "cost_month",
+        "price_month",
         "cost",
         "price",
     ):
@@ -272,6 +275,21 @@ def _extract_service_cost(item: dict) -> float:
                 return nested
 
     return 0.0
+
+
+def _has_nested_cost_items(item: dict) -> bool:
+    """Проверить, содержит ли элемент вложенные сущности с отдельной стоимостью."""
+    for value in item.values():
+        if isinstance(value, dict):
+            if _extract_service_cost(value) > 0 or _has_nested_cost_items(value):
+                return True
+        elif isinstance(value, list):
+            for list_item in value:
+                if isinstance(list_item, dict) and (
+                    _extract_service_cost(list_item) > 0 or _has_nested_cost_items(list_item)
+                ):
+                    return True
+    return False
 
 
 async def _get_products_summary_fallback(session: aiohttp.ClientSession) -> dict:
