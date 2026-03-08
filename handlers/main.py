@@ -37,11 +37,21 @@ async def cmd_status(msg: Message):
 @router.message(Command("balance"))
 async def cmd_balance(msg: Message):
     wait = await msg.answer("⏳ Запрашиваю балансы...")
-    tw_bal, polzaai_bal = await asyncio.gather(
+    tw_bal, tw_products, polzaai_bal, polza_usage = await asyncio.gather(
         tw.get_account_balance(),
-        polza.get_balance()
+        tw.get_products_summary(),
+        polza.get_balance(),
+        polza.get_usage_stats(),
     )
-    text = fmt.fmt_timeweb_balance(tw_bal) + "\n\n" + fmt.fmt_polzaai_balance(polzaai_bal)
+    text = (
+        fmt.fmt_timeweb_balance(tw_bal)
+        + "\n\n"
+        + fmt.fmt_timeweb_products(tw_products)
+        + "\n\n"
+        + fmt.fmt_polzaai_balance(polzaai_bal)
+        + "\n\n"
+        + fmt.fmt_polzaai_usage(polza_usage)
+    )
     await wait.edit_text(text, reply_markup=kb.back_to_main(), parse_mode="HTML")
 
 
@@ -76,9 +86,9 @@ async def cb_menu_timeweb(cb: CallbackQuery):
 @router.callback_query(F.data == "tw_balance")
 async def cb_tw_balance(cb: CallbackQuery):
     await cb.answer("⏳ Запрашиваю...")
-    data = await tw.get_account_balance()
+    data, products = await asyncio.gather(tw.get_account_balance(), tw.get_products_summary())
     await cb.message.edit_text(
-        fmt.fmt_timeweb_balance(data),
+        fmt.fmt_timeweb_balance(data) + "\n\n" + fmt.fmt_timeweb_products(products),
         reply_markup=kb.timeweb_menu(),
         parse_mode="HTML"
     )
@@ -135,9 +145,9 @@ async def cb_tw_domains(cb: CallbackQuery):
 @router.callback_query(F.data == "menu_polzaai")
 async def cb_menu_polzaai(cb: CallbackQuery):
     await cb.answer("⏳ Запрашиваю...")
-    data = await polza.get_balance()
+    data, usage = await asyncio.gather(polza.get_balance(), polza.get_usage_stats())
     await cb.message.edit_text(
-        fmt.fmt_polzaai_balance(data),
+        fmt.fmt_polzaai_balance(data) + "\n\n" + fmt.fmt_polzaai_usage(usage),
         reply_markup=kb.back_to_main(),
         parse_mode="HTML"
     )
@@ -196,13 +206,15 @@ async def cb_full_report(cb: CallbackQuery):
 
 # Утилита: отправить полный отчёт
 async def send_full_report(chat_id: int, bot, message=None):
-    tw_bal, polzaai_bal, indexing, queries = await asyncio.gather(
+    tw_bal, tw_products, polzaai_bal, polza_usage, indexing, queries = await asyncio.gather(
         tw.get_account_balance(),
+        tw.get_products_summary(),
         polza.get_balance(),
+        polza.get_usage_stats(),
         yx.get_indexing_stats(),
         yx.get_search_queries(),
     )
-    text = fmt.fmt_full_report(tw_bal, polzaai_bal, indexing, queries)
+    text = fmt.fmt_full_report(tw_bal, tw_products, polzaai_bal, polza_usage, indexing, queries)
     if message:
         await message.edit_text(text, reply_markup=kb.main_menu(), parse_mode="HTML")
     else:

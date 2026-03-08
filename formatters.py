@@ -4,11 +4,38 @@ from datetime import datetime
 def fmt_timeweb_balance(data: dict) -> str:
     if "error" in data:
         return f"❌ Ошибка получения баланса TimeWeb: {data['error']}"
+    runway_line = "♾️ Списания не обнаружены"
+    if data.get("runway_days") is not None:
+        runway_line = (
+            f"⏳ Хватит на: <b>{data['runway_days']} дн.</b> "
+            f"(до {data.get('runway_date', '—')})"
+        )
     return (
         f"💰 <b>Баланс TimeWeb Cloud</b>\n\n"
         f"💵 Основной: <b>{data['balance']} {data['currency']}</b>\n"
-        f"🎁 Бонусы: <b>{data['bonus']} {data['currency']}</b>"
+        f"🎁 Бонусы: <b>{data['bonus']} {data['currency']}</b>\n"
+        f"📉 Списания/день: <b>{data.get('daily_burn', 0)} {data['currency']}</b>\n"
+        f"{runway_line}"
     )
+
+
+def fmt_timeweb_products(data: dict) -> str:
+    products = data.get("products", [])
+    if not products:
+        return "📦 <b>Продукты TimeWeb</b>\n\nНет данных по продуктам."
+
+    lines = ["📦 <b>Продукты TimeWeb</b>\n"]
+    for product in products:
+        price = product.get("monthly_cost", 0)
+        if price:
+            lines.append(f"• {product['name']}: {product['count']} шт. (~{price} ₽/мес)")
+        else:
+            lines.append(f"• {product['name']}: {product['count']} шт.")
+
+    lines.append("")
+    lines.append(f"Итого: ~<b>{data.get('total_monthly_cost', 0)} ₽/мес</b>")
+    lines.append(f"В день: ~<b>{data.get('estimated_daily_cost', 0)} ₽</b>")
+    return "\n".join(lines)
 
 
 def fmt_server(s: dict) -> str:
@@ -58,6 +85,29 @@ def fmt_polzaai_balance(data: dict) -> str:
     )
 
 
+def fmt_polzaai_usage(data: dict) -> str:
+    if "error" in data and not data.get("keys"):
+        return f"⚠️ <b>Polza AI usage</b>\n\n{data['error']}"
+
+    lines = ["📊 <b>Polza AI: использование ключей</b>\n"]
+    for i, item in enumerate(data.get("keys", []), 1):
+        lines.append(
+            f"{i}. <b>{item['key_name']}</b> ({item['model']})\n"
+            f"   • Запросы: {item['requests']}\n"
+            f"   • Токены: {item['tokens']}\n"
+            f"   • Расход: {item['cost']} ₽"
+        )
+
+    totals = data.get("totals", {})
+    lines.append("")
+    lines.append(
+        f"Σ Запросы: <b>{totals.get('requests', 0)}</b> | "
+        f"Токены: <b>{totals.get('tokens', 0)}</b> | "
+        f"Расход: <b>{totals.get('cost', 0)} ₽</b>"
+    )
+    return "\n".join(lines)
+
+
 def fmt_yandex_indexing(data: dict) -> str:
     if "error" in data:
         return f"❌ Ошибка Яндекс Вебмастера: {data['error']}"
@@ -93,14 +143,18 @@ def fmt_yandex_errors(data: dict) -> str:
     return "\n".join(lines)
 
 
-def fmt_full_report(tw_balance, polzaai, indexing, queries) -> str:
+def fmt_full_report(tw_balance, tw_products, polzaai, polza_usage, indexing, queries) -> str:
     now = datetime.now().strftime("%d.%m.%Y %H:%M")
     parts = [
         f"📊 <b>Полный отчёт</b> | {now}\n",
         "━━━━━━━━━━━━━━━━━━━━",
         fmt_timeweb_balance(tw_balance),
         "━━━━━━━━━━━━━━━━━━━━",
+        fmt_timeweb_products(tw_products),
+        "━━━━━━━━━━━━━━━━━━━━",
         fmt_polzaai_balance(polzaai),
+        "━━━━━━━━━━━━━━━━━━━━",
+        fmt_polzaai_usage(polza_usage),
         "━━━━━━━━━━━━━━━━━━━━",
         fmt_yandex_indexing(indexing),
     ]
