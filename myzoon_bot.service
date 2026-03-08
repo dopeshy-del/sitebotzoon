@@ -1,0 +1,16 @@
+[Unit]
+Description=Myzoon Monitor Telegram Bot
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/myzoon_bot
+ExecStart=/root/myzoon_bot/venv/bin/python bot.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
