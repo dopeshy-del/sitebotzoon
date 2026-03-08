@@ -11,21 +11,21 @@ BASE = f"{YANDEX_API_URL}/user/{YANDEX_USER_ID}/hosts/{YANDEX_HOST_ID}"
 
 
 async def get_host_info() -> dict:
-    """Получить общую информацию о сайте."""
+    """РџРѕР»СѓС‡РёС‚СЊ РѕР±С‰СѓСЋ РёРЅС„РѕСЂРјР°С†РёСЋ Рѕ СЃР°Р№С‚Рµ."""
     async with aiohttp.ClientSession() as session:
         async with session.get(BASE, headers=HEADERS) as r:
             if r.status == 200:
                 data = await r.json()
                 return {
-                    "host": data.get("unicode_host_url", "—"),
+                    "host": data.get("unicode_host_url", "вЂ”"),
                     "verified": data.get("verified", False),
-                    "main_mirror": data.get("main_mirror", {}).get("unicode_host_url", "—"),
+                    "main_mirror": data.get("main_mirror", {}).get("unicode_host_url", "вЂ”"),
                 }
             return {"error": f"HTTP {r.status}"}
 
 
 async def get_indexing_stats() -> dict:
-    """Получить статистику индексации."""
+    """РџРѕР»СѓС‡РёС‚СЊ СЃС‚Р°С‚РёСЃС‚РёРєСѓ РёРЅРґРµРєСЃР°С†РёРё."""
     async with aiohttp.ClientSession() as session:
         async with session.get(f"{BASE}/indexing/stats", headers=HEADERS) as r:
             if r.status == 200:
@@ -38,7 +38,7 @@ async def get_indexing_stats() -> dict:
 
 
 async def get_search_queries() -> dict:
-    """Получить статистику поисковых запросов за последние 7 дней."""
+    """РџРѕР»СѓС‡РёС‚СЊ СЃС‚Р°С‚РёСЃС‚РёРєСѓ РїРѕРёСЃРєРѕРІС‹С… Р·Р°РїСЂРѕСЃРѕРІ Р·Р° РїРѕСЃР»РµРґРЅРёРµ 7 РґРЅРµР№."""
     date_to = datetime.now().strftime("%Y-%m-%d")
     date_from = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
 
@@ -58,10 +58,10 @@ async def get_search_queries() -> dict:
                 data = await r.json()
                 queries = data.get("queries", [])
                 return {
-                    "period": f"{date_from} — {date_to}",
+                    "period": f"{date_from} вЂ” {date_to}",
                     "top_queries": [
                         {
-                            "query": q.get("query_text", "—"),
+                            "query": q.get("query_text", "вЂ”"),
                             "clicks": q.get("indicators", {}).get("CLICKS", 0),
                             "impressions": q.get("indicators", {}).get("SHOWS", 0),
                             "ctr": round(q.get("indicators", {}).get("CTR", 0) * 100, 2),
@@ -74,7 +74,7 @@ async def get_search_queries() -> dict:
 
 
 async def get_errors() -> dict:
-    """Получить ошибки сайта."""
+    """РџРѕР»СѓС‡РёС‚СЊ РѕС€РёР±РєРё СЃР°Р№С‚Р°."""
     async with aiohttp.ClientSession() as session:
         async with session.get(f"{BASE}/monitoring/states", headers=HEADERS) as r:
             if r.status == 200:

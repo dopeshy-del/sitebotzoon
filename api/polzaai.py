@@ -9,7 +9,7 @@ HEADERS = {
 
 
 async def get_balance() -> dict:
-    """Получить баланс PolzaAI."""
+    """РџРѕР»СѓС‡РёС‚СЊ Р±Р°Р»Р°РЅСЃ PolzaAI."""
     async with aiohttp.ClientSession() as session:
         async with session.get(
             f"{POLZAAI_API_URL}/users/{POLZAAI_USER_ID}/balance",
@@ -19,8 +19,8 @@ async def get_balance() -> dict:
                 data = await r.json()
                 return {
                     "balance": data.get("balance", 0),
-                    "currency": data.get("currency", "₽"),
-                    "plan": data.get("plan", "—"),
+                    "currency": data.get("currency", "в‚Ѕ"),
+                    "plan": data.get("plan", "вЂ”"),
                     "requests_used": data.get("requests_used", 0),
                     "requests_limit": data.get("requests_limit", 0),
                 }
@@ -29,7 +29,7 @@ async def get_balance() -> dict:
 
 
 async def get_usage_stats() -> dict:
-    """Получить статистику использования."""
+    """РџРѕР»СѓС‡РёС‚СЊ СЃС‚Р°С‚РёСЃС‚РёРєСѓ РёСЃРїРѕР»СЊР·РѕРІР°РЅРёСЏ."""
     async with aiohttp.ClientSession() as session:
         async with session.get(
             f"{POLZAAI_API_URL}/users/{POLZAAI_USER_ID}/stats",

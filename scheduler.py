@@ -19,16 +19,16 @@ logger = logging.getLogger(__name__)
 
 
 async def check_balances(bot: Bot):
-    """Проверить балансы и отправить алерт если нужно."""
+    """РџСЂРѕРІРµСЂРёС‚СЊ Р±Р°Р»Р°РЅСЃС‹ Рё РѕС‚РїСЂР°РІРёС‚СЊ Р°Р»РµСЂС‚ РµСЃР»Рё РЅСѓР¶РЅРѕ."""
     try:
         tw_balance = await tw.get_account_balance()
         if tw_balance.get("balance") is not None:
             if tw_balance["balance"] < TIMEWEB_BALANCE_THRESHOLD:
                 await bot.send_message(
                     ADMIN_CHAT_ID,
-                    f"⚠️ <b>Внимание!</b> Баланс TimeWeb: "
-                    f"<b>{tw_balance['balance']} ₽</b>\n"
-                    f"Порог: {TIMEWEB_BALANCE_THRESHOLD} ₽",
+                    f"вљ пёЏ <b>Р’РЅРёРјР°РЅРёРµ!</b> Р‘Р°Р»Р°РЅСЃ TimeWeb: "
+                    f"<b>{tw_balance['balance']} в‚Ѕ</b>\n"
+                    f"РџРѕСЂРѕРі: {TIMEWEB_BALANCE_THRESHOLD} в‚Ѕ",
                     parse_mode="HTML"
                 )
     except Exception as e:
@@ -40,9 +40,9 @@ async def check_balances(bot: Bot):
             if polzaai_balance["balance"] < POLZAAI_BALANCE_THRESHOLD:
                 await bot.send_message(
                     ADMIN_CHAT_ID,
-                    f"⚠️ <b>Внимание!</b> Баланс PolzaAI: "
+                    f"вљ пёЏ <b>Р’РЅРёРјР°РЅРёРµ!</b> Р‘Р°Р»Р°РЅСЃ PolzaAI: "
                     f"<b>{polzaai_balance['balance']} {polzaai_balance['currency']}</b>\n"
-                    f"Порог: {POLZAAI_BALANCE_THRESHOLD}",
+                    f"РџРѕСЂРѕРі: {POLZAAI_BALANCE_THRESHOLD}",
                     parse_mode="HTML"
                 )
     except Exception as e:
@@ -50,17 +50,17 @@ async def check_balances(bot: Bot):
 
 
 async def check_servers(bot: Bot):
-    """Проверить статусы серверов."""
+    """РџСЂРѕРІРµСЂРёС‚СЊ СЃС‚Р°С‚СѓСЃС‹ СЃРµСЂРІРµСЂРѕРІ."""
     try:
         servers = await tw.get_servers()
         for s in servers:
             if s["status"] not in ("on", "active"):
                 await bot.send_message(
                     ADMIN_CHAT_ID,
-                    f"🔴 <b>Сервер недоступен!</b>\n"
-                    f"Имя: <b>{s['name']}</b>\n"
+                    f"рџ”ґ <b>РЎРµСЂРІРµСЂ РЅРµРґРѕСЃС‚СѓРїРµРЅ!</b>\n"
+                    f"РРјСЏ: <b>{s['name']}</b>\n"
                     f"IP: <code>{s['ip']}</code>\n"
-                    f"Статус: {s['status']}",
+                    f"РЎС‚Р°С‚СѓСЃ: {s['status']}",
                     parse_mode="HTML"
                 )
     except Exception as e:
@@ -68,7 +68,7 @@ async def check_servers(bot: Bot):
 
 
 async def send_daily_report(bot: Bot):
-    """Отправить ежедневный сводный отчёт."""
+    """РћС‚РїСЂР°РІРёС‚СЊ РµР¶РµРґРЅРµРІРЅС‹Р№ СЃРІРѕРґРЅС‹Р№ РѕС‚С‡С‘С‚."""
     try:
         import asyncio
         tw_bal, polzaai_bal, indexing, queries = await asyncio.gather(
@@ -86,7 +86,7 @@ async def send_daily_report(bot: Bot):
 def setup_scheduler(bot: Bot) -> AsyncIOScheduler:
     scheduler = AsyncIOScheduler(timezone="Europe/Moscow")
 
-    # Проверка балансов каждые N минут
+    # РџСЂРѕРІРµСЂРєР° Р±Р°Р»Р°РЅСЃРѕРІ РєР°Р¶РґС‹Рµ N РјРёРЅСѓС‚
     scheduler.add_job(
         check_balances,
         trigger="interval",
@@ -95,7 +95,7 @@ def setup_scheduler(bot: Bot) -> AsyncIOScheduler:
         id="check_balances",
     )
 
-    # Проверка серверов каждые 10 минут
+    # РџСЂРѕРІРµСЂРєР° СЃРµСЂРІРµСЂРѕРІ РєР°Р¶РґС‹Рµ 10 РјРёРЅСѓС‚
     scheduler.add_job(
         check_servers,
         trigger="interval",
@@ -104,7 +104,7 @@ def setup_scheduler(bot: Bot) -> AsyncIOScheduler:
         id="check_servers",
     )
 
-    # Ежедневный отчёт
+    # Р•Р¶РµРґРЅРµРІРЅС‹Р№ РѕС‚С‡С‘С‚
     scheduler.add_job(
         send_daily_report,
         trigger="cron",
