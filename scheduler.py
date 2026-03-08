@@ -9,6 +9,7 @@ import formatters as fmt
 from config import (
     ADMIN_CHAT_ID,
     TIMEWEB_BALANCE_THRESHOLD,
+    TIMEWEB_RUNWAY_HOURS_THRESHOLD,
     POLZAAI_BALANCE_THRESHOLD,
     REPORT_HOUR,
     REPORT_MINUTE,
@@ -23,12 +24,29 @@ async def check_balances(bot: Bot):
     try:
         tw_balance = await tw.get_account_balance()
         if tw_balance.get("balance") is not None:
-            if tw_balance["balance"] < TIMEWEB_BALANCE_THRESHOLD:
+            balance = tw_balance["balance"]
+            runway_days = tw_balance.get("runway_days")
+            runway_hours = runway_days * 24 if runway_days is not None else None
+
+            low_balance = balance <= TIMEWEB_BALANCE_THRESHOLD
+            low_runway = runway_hours is not None and runway_hours <= TIMEWEB_RUNWAY_HOURS_THRESHOLD
+
+            if low_balance or low_runway:
+                reasons = []
+                if low_balance:
+                    reasons.append(f"Порог баланса: {TIMEWEB_BALANCE_THRESHOLD} ₽")
+                if low_runway:
+                    reasons.append(f"Порог остатка жизни: {TIMEWEB_RUNWAY_HOURS_THRESHOLD} ч")
+
+                runway_line = ""
+                if runway_hours is not None:
+                    runway_line = f"\nОсталось жить: <b>{round(runway_hours, 1)} ч</b>"
+
                 await bot.send_message(
                     ADMIN_CHAT_ID,
                     f"⚠️ <b>Внимание!</b> Баланс TimeWeb: "
-                    f"<b>{tw_balance['balance']} ₽</b>\n"
-                    f"Порог: {TIMEWEB_BALANCE_THRESHOLD} ₽",
+                    f"<b>{balance} ₽</b>{runway_line}\n"
+                    f"Сработало: {'; '.join(reasons)}",
                     parse_mode="HTML"
                 )
     except Exception as e:
