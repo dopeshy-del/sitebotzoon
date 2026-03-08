@@ -129,7 +129,9 @@ async def get_domains() -> list:
 async def get_products_summary() -> dict:
     """Получить сводку по стоимости активных сервисов Timeweb."""
     async with aiohttp.ClientSession() as session:
-        # Актуальный API Timeweb: /account/services/cost
+        # Актуальный API Timeweb: /account/services/cost.
+        # В разных аккаунтах структура payload может отличаться (в т.ч. через projects),
+        # поэтому собираем элементы стоимости рекурсивно.
         services_costs = await _fetch_services_costs(session)
         if services_costs:
             return _summarize_services_costs(services_costs)
@@ -144,12 +146,54 @@ async def _fetch_services_costs(session: aiohttp.ClientSession) -> list[dict]:
             if r.status != 200:
                 return []
             payload = await r.json()
-            services_costs = payload.get("services_costs", [])
-            if isinstance(services_costs, list):
-                return [item for item in services_costs if isinstance(item, dict)]
+            return _extract_cost_items(payload)
     except aiohttp.ClientError:
         return []
     return []
+
+
+def _extract_cost_items(payload: dict) -> list[dict]:
+    """Извлечь нормализованный список сервисов с ценой из любого payload Timeweb."""
+    collected: list[dict] = []
+    seen_signatures: set[tuple[str, float]] = set()
+
+    def walk(value):
+        if isinstance(value, dict):
+            normalized = _normalize_cost_item(value)
+            if normalized:
+                signature = (normalized["name"], normalized["monthly_cost"])
+                if signature not in seen_signatures:
+                    seen_signatures.add(signature)
+                    collected.append(normalized)
+
+            for nested_value in value.values():
+                walk(nested_value)
+            return
+
+        if isinstance(value, list):
+            for item in value:
+                walk(item)
+
+    walk(payload)
+    return collected
+
+
+def _normalize_cost_item(item: dict) -> dict | None:
+    cost = _extract_service_cost(item)
+    if cost <= 0:
+        return None
+
+    # Отсекаем агрегаты вида total_monthly_cost, чтобы не задвоить суммы.
+    if any(key in item for key in ("total_monthly_cost", "estimated_daily_cost", "total_cost")):
+        has_detailed_list = any(isinstance(v, list) and v for v in item.values())
+        if has_detailed_list:
+            return None
+
+    name = _extract_service_name(item)
+    return {
+        "name": name,
+        "monthly_cost": round(cost, 2),
+    }
 
 
 def _summarize_services_costs(services_costs: list[dict]) -> dict:
@@ -194,8 +238,10 @@ def _extract_service_name(item: dict) -> str:
     for key in (
         "service_name",
         "name",
+        "slug",
         "service",
         "title",
+        "project_name",
         "type",
     ):
         value = item.get(key)
@@ -210,6 +256,8 @@ def _extract_service_cost(item: dict) -> float:
         "cost_per_month",
         "month_price",
         "price_per_month",
+        "monthly_payment",
+        "cost_month",
         "cost",
         "price",
     ):
