@@ -20,14 +20,14 @@ async def main():
     dp = Dispatcher()
     dp.include_router(router)
 
-    # Р—Р°РїСѓСЃРє РїР»Р°РЅРёСЂРѕРІС‰РёРєР°
+    # Запуск планировщика
     scheduler = setup_scheduler(bot)
     scheduler.start()
     logger.info("Scheduler started")
 
-    # РЈРІРµРґРѕРјРёС‚СЊ Рѕ Р·Р°РїСѓСЃРєРµ
+    # Уведомить о запуске
     try:
-        await bot.send_message(ADMIN_CHAT_ID, "вњ… <b>Р‘РѕС‚ Р·Р°РїСѓС‰РµРЅ</b>", parse_mode="HTML")
+        await bot.send_message(ADMIN_CHAT_ID, "✅ <b>Бот запущен</b>", parse_mode="HTML")
     except Exception:
         pass
 
