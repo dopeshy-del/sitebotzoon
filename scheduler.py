@@ -10,6 +10,7 @@ from config import (
     ADMIN_CHAT_ID,
     TIMEWEB_BALANCE_THRESHOLD,
     POLZAAI_BALANCE_THRESHOLD,
+    TIMEWEB_BALANCE_ALERTS_ENABLED,
     REPORT_HOUR,
     REPORT_MINUTE,
     CHECK_INTERVAL,
@@ -21,16 +22,17 @@ logger = logging.getLogger(__name__)
 async def check_balances(bot: Bot):
     """Проверить балансы и отправить алерт если нужно."""
     try:
-        tw_balance = await tw.get_account_balance()
-        if tw_balance.get("balance") is not None:
-            if tw_balance["balance"] < TIMEWEB_BALANCE_THRESHOLD:
-                await bot.send_message(
-                    ADMIN_CHAT_ID,
-                    f"⚠️ <b>Внимание!</b> Баланс TimeWeb: "
-                    f"<b>{tw_balance['balance']} ₽</b>\n"
-                    f"Порог: {TIMEWEB_BALANCE_THRESHOLD} ₽",
-                    parse_mode="HTML"
-                )
+        if TIMEWEB_BALANCE_ALERTS_ENABLED:
+            tw_balance = await tw.get_account_balance()
+            if tw_balance.get("balance") is not None:
+                if tw_balance["balance"] < TIMEWEB_BALANCE_THRESHOLD:
+                    await bot.send_message(
+                        ADMIN_CHAT_ID,
+                        f"⚠️ <b>Внимание!</b> Баланс TimeWeb: "
+                        f"<b>{tw_balance['balance']} ₽</b>\n"
+                        f"Порог: {TIMEWEB_BALANCE_THRESHOLD} ₽",
+                        parse_mode="HTML"
+                    )
     except Exception as e:
         logger.error(f"TimeWeb balance check error: {e}")
 

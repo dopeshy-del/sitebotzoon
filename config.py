@@ -25,6 +25,9 @@ YANDEX_API_URL = "https://api.webmaster.yandex.net/v4"
 # Пороги уведомлений
 TIMEWEB_BALANCE_THRESHOLD = float(os.getenv("TIMEWEB_BALANCE_THRESHOLD", 500))
 POLZAAI_BALANCE_THRESHOLD = float(os.getenv("POLZAAI_BALANCE_THRESHOLD", 50))
+TIMEWEB_BALANCE_ALERTS_ENABLED = os.getenv("TIMEWEB_BALANCE_ALERTS_ENABLED", "true").lower() in {
+    "1", "true", "yes", "on"
+}
 
 # Расписание
 REPORT_HOUR = int(os.getenv("REPORT_HOUR", 9))
