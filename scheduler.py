@@ -18,6 +18,7 @@ from config import (
     CURSOR_ENABLED,
     CURSOR_REMAINING_THRESHOLD,
     CURSOR_CHECK_INTERVAL,
+    CURSOR_API_KEY,
 )
 
 logger = logging.getLogger(__name__)
@@ -164,7 +165,7 @@ def setup_scheduler(bot: Bot) -> AsyncIOScheduler:
         id="check_balances",
     )
 
-    if CURSOR_ENABLED:
+    if CURSOR_ENABLED and CURSOR_API_KEY:
         scheduler.add_job(
             check_cursor,
             trigger="interval",
@@ -172,6 +173,11 @@ def setup_scheduler(bot: Bot) -> AsyncIOScheduler:
             args=[bot],
             id="check_cursor",
         )
+        logger.info("Cursor monitoring enabled: every %s min", CURSOR_CHECK_INTERVAL)
+    elif CURSOR_ENABLED and not CURSOR_API_KEY:
+        logger.warning("CURSOR_ENABLED=true, но CURSOR_API_KEY не задан — мониторинг Cursor отключен.")
+    else:
+        logger.info("Cursor monitoring disabled (set CURSOR_ENABLED=true to enable).")
 
     # Проверка серверов каждые 10 минут
     scheduler.add_job(

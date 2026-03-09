@@ -14,6 +14,8 @@ def as_bool(value: str | None, default: bool = False) -> bool:
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 ADMIN_CHAT_ID = int(os.getenv("ADMIN_CHAT_ID", 0))
 
+INSTANCE_LOCK_FILE = os.getenv("INSTANCE_LOCK_FILE", "/tmp/myzoon_bot.lock")
+
 # TimeWeb Cloud
 TIMEWEB_API_TOKEN = os.getenv("TIMEWEB_API_TOKEN")
 TIMEWEB_API_URL = "https://api.timeweb.cloud/api/v1"

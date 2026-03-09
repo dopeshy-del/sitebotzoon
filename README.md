@@ -52,9 +52,22 @@ CURSOR_API_KEY=ваш_ключ
 CURSOR_API_URL=https://api.cursor.com/v1
 CURSOR_REMAINING_THRESHOLD=20
 CURSOR_CHECK_INTERVAL=5
+INSTANCE_LOCK_FILE=/tmp/myzoon_bot.lock
 ```
 
 > Важно: endpoint'ы Cursor могут отличаться по версии API. В коде добавлены несколько fallback-адресов (`/runs`, `/tasks`, `/generations`, `/usage`, `/limits`), чтобы мониторинг работал даже при частичных изменениях API.
+
+
+## Если видите `TelegramConflictError`
+
+Ошибка вида `Conflict: terminated by other getUpdates request` означает, что одновременно запущено несколько копий бота с одним `BOT_TOKEN`.
+
+Что сделать:
+1. Проверьте, что запущен только один процесс/сервис (`systemctl status myzoon_bot`, `ps aux | grep bot.py`).
+2. Остановите дубли (`systemctl stop myzoon_bot`, завершите лишние python-процессы).
+3. Запустите снова один экземпляр (`systemctl start myzoon_bot`).
+
+В код добавлена файловая блокировка (`INSTANCE_LOCK_FILE`), чтобы вторая копия бота не стартовала и не ломала polling.
 
 ## Управление серверами
 
