@@ -24,6 +24,7 @@
 | `/status` | Статус серверов |
 | `/balance` | Балансы всех сервисов |
 | `/report` | Полный сводный отчёт |
+| `/cursor` | Текущий остаток лимита Cursor API |
 
 ## Мониторинг баланса PolzaAI
 
@@ -35,6 +36,25 @@
 Интервал проверки задаётся `CHECK_INTERVAL` (в минутах).
 Если нужна проверка раз в час как в примере, установите `CHECK_INTERVAL=60` в `.env`.
 
+
+
+## Мониторинг Cursor API
+
+Добавлена базовая интеграция Cursor API с двумя сценариями:
+- уведомление в `ADMIN_CHAT_ID`, когда задача завершилась (`completed/done/succeeded`) или завершилась с ошибкой (`failed/error/cancelled`),
+- алерт при низком остатке лимита (`CURSOR_REMAINING_THRESHOLD`).
+
+### Переменные `.env`
+
+```env
+CURSOR_ENABLED=true
+CURSOR_API_KEY=ваш_ключ
+CURSOR_API_URL=https://api.cursor.com/v1
+CURSOR_REMAINING_THRESHOLD=20
+CURSOR_CHECK_INTERVAL=5
+```
+
+> Важно: endpoint'ы Cursor могут отличаться по версии API. В коде добавлены несколько fallback-адресов (`/runs`, `/tasks`, `/generations`, `/usage`, `/limits`), чтобы мониторинг работал даже при частичных изменениях API.
 
 ## Управление серверами
 

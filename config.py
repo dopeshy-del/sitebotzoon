@@ -3,6 +3,13 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
+def as_bool(value: str | None, default: bool = False) -> bool:
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
 # Telegram
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 ADMIN_CHAT_ID = int(os.getenv("ADMIN_CHAT_ID", 0))
@@ -15,6 +22,13 @@ TIMEWEB_API_URL = "https://api.timeweb.cloud/api/v1"
 POLZAAI_API_KEY = os.getenv("POLZAAI_API_KEY")
 POLZAAI_USER_ID = os.getenv("POLZAAI_USER_ID")
 POLZAAI_API_URL = os.getenv("POLZAAI_API_URL", "https://polza.ai/api/v1")
+
+# Cursor API
+CURSOR_API_KEY = os.getenv("CURSOR_API_KEY")
+CURSOR_API_URL = os.getenv("CURSOR_API_URL", "https://api.cursor.com/v1")
+CURSOR_ENABLED = as_bool(os.getenv("CURSOR_ENABLED"), default=False)
+CURSOR_REMAINING_THRESHOLD = float(os.getenv("CURSOR_REMAINING_THRESHOLD", 20))
+CURSOR_CHECK_INTERVAL = int(os.getenv("CURSOR_CHECK_INTERVAL", 5))  # минуты
 
 # Yandex Webmaster
 YANDEX_OAUTH_TOKEN = os.getenv("YANDEX_OAUTH_TOKEN")
