@@ -6,8 +6,10 @@ from aiogram.filters import CommandStart, Command
 import api.timeweb as tw
 import api.polzaai as polza
 import api.yandex_webmaster as yx
+import api.cursor as cursor
 import keyboards.inline as kb
 import formatters as fmt
+from config import CURSOR_ENABLED, CURSOR_API_KEY
 
 router = Router()
 
@@ -52,6 +54,30 @@ async def cmd_balance(msg: Message):
         + "\n\n"
         + fmt.fmt_polzaai_usage(polza_usage)
     )
+    await wait.edit_text(text, reply_markup=kb.back_to_main(), parse_mode="HTML")
+
+
+
+
+# /cursor
+@router.message(Command("cursor"))
+async def cmd_cursor(msg: Message):
+    if not CURSOR_ENABLED:
+        await msg.answer(
+            "⚠️ Мониторинг Cursor выключен. Установите <code>CURSOR_ENABLED=true</code> в .env",
+            parse_mode="HTML",
+        )
+        return
+    if not CURSOR_API_KEY:
+        await msg.answer(
+            "⚠️ Не задан <code>CURSOR_API_KEY</code>. Добавьте ключ в .env.",
+            parse_mode="HTML",
+        )
+        return
+
+    wait = await msg.answer("⏳ Проверяю Cursor API...")
+    limits = await cursor.get_limits()
+    text = fmt.fmt_cursor_limits(limits)
     await wait.edit_text(text, reply_markup=kb.back_to_main(), parse_mode="HTML")
 
 
