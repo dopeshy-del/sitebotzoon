@@ -5,6 +5,7 @@ from aiogram import Bot
 import api.timeweb as tw
 import api.polzaai as polza
 import api.yandex_webmaster as yx
+import api.cursor as cursor
 import formatters as fmt
 from config import (
     ADMIN_CHAT_ID,
@@ -14,9 +15,13 @@ from config import (
     REPORT_HOUR,
     REPORT_MINUTE,
     CHECK_INTERVAL,
+    CURSOR_ENABLED,
+    CURSOR_REMAINING_THRESHOLD,
+    CURSOR_CHECK_INTERVAL,
 )
 
 logger = logging.getLogger(__name__)
+_seen_cursor_runs: set[str] = set()
 
 
 async def check_balances(bot: Bot):
@@ -67,6 +72,50 @@ async def check_balances(bot: Bot):
         logger.error(f"PolzaAI balance check error: {e}")
 
 
+async def check_cursor(bot: Bot):
+    """Проверка Cursor: остаток лимита и завершение задач."""
+    try:
+        limits = await cursor.get_limits()
+        remaining = limits.get("remaining")
+        if remaining is not None and remaining <= CURSOR_REMAINING_THRESHOLD:
+            await bot.send_message(
+                ADMIN_CHAT_ID,
+                (
+                    "⚠️ <b>Cursor: низкий остаток лимита</b>\n"
+                    f"Остаток: <b>{remaining}</b>\n"
+                    f"Порог: {CURSOR_REMAINING_THRESHOLD}"
+                ),
+                parse_mode="HTML",
+            )
+    except Exception as e:
+        logger.error(f"Cursor limits check error: {e}")
+
+    try:
+        runs_payload = await cursor.get_recent_runs(limit=20)
+        runs = runs_payload.get("runs", [])
+        for run in runs:
+            run_id = run.get("id")
+            if not run_id or run_id in _seen_cursor_runs:
+                continue
+
+            status = (run.get("status") or "unknown").lower()
+            if status in {"completed", "done", "succeeded", "failed", "error", "cancelled"}:
+                _seen_cursor_runs.add(run_id)
+                icon = "✅" if status in {"completed", "done", "succeeded"} else "❌"
+                await bot.send_message(
+                    ADMIN_CHAT_ID,
+                    (
+                        f"{icon} <b>Cursor задача завершена</b>\n"
+                        f"ID: <code>{run_id}</code>\n"
+                        f"Статус: <b>{status}</b>\n"
+                        f"Промпт: {run.get('prompt', '—')}"
+                    ),
+                    parse_mode="HTML",
+                )
+    except Exception as e:
+        logger.error(f"Cursor runs check error: {e}")
+
+
 async def check_servers(bot: Bot):
     """Проверить статусы серверов."""
     try:
@@ -114,6 +163,15 @@ def setup_scheduler(bot: Bot) -> AsyncIOScheduler:
         args=[bot],
         id="check_balances",
     )
+
+    if CURSOR_ENABLED:
+        scheduler.add_job(
+            check_cursor,
+            trigger="interval",
+            minutes=CURSOR_CHECK_INTERVAL,
+            args=[bot],
+            id="check_cursor",
+        )
 
     # Проверка серверов каждые 10 минут
     scheduler.add_job(

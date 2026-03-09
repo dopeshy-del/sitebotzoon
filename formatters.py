@@ -167,3 +167,25 @@ def fmt_full_report(tw_balance, tw_products, polzaai, polza_usage, indexing, que
         top = queries["top_queries"][0]
         parts.append(f"\n🔎 Топ запрос: <b>{top['query']}</b> ({top['clicks']} кл.)")
     return "\n".join(parts)
+
+
+def fmt_cursor_limits(data: dict) -> str:
+    if "error" in data:
+        return f"⚠️ <b>Cursor API</b>\n\n{data['error']}"
+
+    remaining = data.get("remaining")
+    used = data.get("used", 0)
+    total = data.get("total", 0)
+
+    if remaining is None:
+        return "⚠️ <b>Cursor API</b>\n\nЛимиты не удалось распарсить."
+
+    usage_line = "—"
+    if total:
+        usage_line = f"{used}/{total}"
+
+    return (
+        f"🧠 <b>Cursor API</b>\n\n"
+        f"📉 Остаток лимита: <b>{remaining}</b>\n"
+        f"📊 Использовано: <b>{usage_line}</b>"
+    )
